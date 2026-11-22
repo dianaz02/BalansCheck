@@ -1,0 +1,234 @@
+
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="BalansCheck — PDF қаржылық есептілігін автоматты түрде алу және арифметикалық тексеру жүйесі">
+  <title>BalansCheck — Қаржылық есептілікті тексеру</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- PDF.js кітапханасы -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+
+<body>
+
+  <header class="hero">
+    <div class="hero-container">
+
+      <section class="hero-content">
+        <div class="brand">
+          <span class="brand-icon"></span>
+          BalansCheck
+        </div>
+
+        <div class="eyebrow">FINANCIAL STATEMENT ANALYZER</div>
+
+        <h1>
+          Қаржылық есептілікті
+          <span>бірнеше секундта тексеріңіз.</span>
+        </h1>
+
+        <p class="hero-description">
+          PDF құжатын жүктеңіз. BalansCheck қаржылық көрсеткіштерді
+          автоматты түрде анықтап, арифметикалық сәйкестігін тексереді.
+        </p>
+
+        <div class="upload-box" id="drop" tabindex="0" role="button">
+          <div class="upload-icon">↑</div>
+          <h3>PDF файлын осында жүктеңіз</h3>
+          <p>Файлды сүйреп әкеліңіз немесе таңдау үшін басыңыз</p>
+          <small>Тек PDF форматындағы файлдар</small>
+        </div>
+
+        <input type="file" id="file" accept="application/pdf" hidden>
+
+        <div class="hero-actions">
+          <button class="btn btn-primary" id="demo">
+            Демо режимін көру
+          </button>
+
+          <button class="btn btn-outline" id="run">
+            Мәтінді талдау
+          </button>
+        </div>
+
+        <div id="msg" class="message" role="status"></div>
+      </section>
+
+      <section class="scale-card">
+        <div class="scale-heading">
+          <span class="status-dot"></span>
+          BALANCE MONITOR
+        </div>
+
+        <svg id="scaleSvg" viewBox="0 0 360 250" role="img"
+          aria-label="Активтер мен міндеттемелер таразысы">
+
+          <rect x="130" y="228" width="100" height="10" rx="5" fill="#fff"/>
+          <rect x="175" y="70" width="10" height="160" fill="#fff"/>
+
+          <g id="beam" class="idle">
+            <rect x="40" y="66" width="280" height="8" rx="4" fill="#fff"/>
+
+            <g id="panL">
+              <path d="M60 74L20 150M60 74L100 150"
+                stroke="#fff" stroke-width="2" fill="none"/>
+              <path d="M12 150h96a48 20 0 0 1-96 0z" fill="#fff"/>
+              <text class="scale-label" x="60" y="190" text-anchor="middle">АКТИВТЕР</text>
+              <text id="pl" class="scale-value" x="60" y="208" text-anchor="middle">—</text>
+            </g>
+
+            <g id="panR">
+              <path d="M300 74L260 150M300 74L340 150"
+                stroke="#fff" stroke-width="2" fill="none"/>
+              <path d="M252 150h96a48 20 0 0 1-96 0z" fill="#fff"/>
+              <text class="scale-label" x="300" y="190" text-anchor="middle">МІНДЕТТЕМЕ + КАПИТАЛ</text>
+              <text id="pr" class="scale-value" x="300" y="208" text-anchor="middle">—</text>
+            </g>
+          </g>
+
+          <circle id="piv" cx="180" cy="70" r="9"
+            fill="#5bf0b8" stroke="#fff" stroke-width="3"/>
+        </svg>
+
+        <div id="bst" class="scale-status">
+          Құжат күтілуде
+        </div>
+
+        <div class="scale-caption">
+          Assets = Liabilities + Equity
+        </div>
+      </section>
+
+    </div>
+  </header>
+
+  <main class="container">
+
+    <section id="out" hidden>
+
+      <div id="verdict"></div>
+
+      <div class="stats" id="stats"></div>
+
+      <div class="kpis" id="kpi"></div>
+
+      <section class="card">
+        <div class="section-heading">
+          <div>
+            <span class="section-tag">VALIDATION</span>
+            <h2>Арифметикалық тексеру</h2>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table id="chk"></table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-heading">
+          <div>
+            <span class="section-tag">EXTRACTED DATA</span>
+            <h2>PDF-тен алынған көрсеткіштер</h2>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table id="ext"></table>
+        </div>
+
+        <div class="export-actions">
+          <button class="btn btn-primary" id="bj">
+            JSON жүктеу
+          </button>
+
+          <button class="btn btn-secondary" id="bc">
+            CSV жүктеу
+          </button>
+        </div>
+      </section>
+
+    </section>
+
+    <section class="card text-card">
+      <details>
+        <summary>Алынған мәтінді көру немесе қолмен өңдеу</summary>
+
+        <textarea
+          id="txt"
+          spellcheck="false"
+          placeholder="PDF-тен алынған мәтін осында көрсетіледі..."
+        ></textarea>
+      </details>
+    </section>
+
+    <section class="benefits">
+      <div class="section-heading">
+        <span class="section-tag">WHY BALANSCHECK</span>
+        <h2>Компанияға беретін мүмкіндіктері</h2>
+      </div>
+
+      <div class="benefit-grid">
+        <article class="benefit-card">
+          <span class="benefit-number">01</span>
+          <h3>Автоматты талдау</h3>
+          <p>PDF құжатынан қаржылық көрсеткіштерді автоматты түрде алады.</p>
+        </article>
+
+        <article class="benefit-card">
+          <span class="benefit-number">02</span>
+          <h3>Қателерді анықтау</h3>
+          <p>Активтер, міндеттемелер және капитал арасындағы теңдікті тексереді.</p>
+        </article>
+
+        <article class="benefit-card">
+          <span class="benefit-number">03</span>
+          <h3>Құпиялылық</h3>
+          <p>Демо нұсқада PDF браузер ішінде өңделеді.</p>
+        </article>
+
+        <article class="benefit-card">
+          <span class="benefit-number">04</span>
+          <h3>Деректер экспорты</h3>
+          <p>Талдау нәтижелерін CSV және JSON форматында сақтайды.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="process-section">
+      <span class="section-tag">HOW IT WORKS</span>
+      <h2>Жүйенің жұмыс кезеңдері</h2>
+
+      <div class="process-flow">
+        <span>PDF</span>
+        <b>→</b>
+        <span>Мәтінді алу</span>
+        <b>→</b>
+        <span>Көрсеткіштерді анықтау</span>
+        <b>→</b>
+        <span>Арифметикалық тексеру</span>
+        <b>→</b>
+        <span>Нәтиже</span>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="brand">BalansCheck</div>
+    <p>Financial Statement Extraction & Arithmetic Validation</p>
+    <small>Diploma MVP Project · 2026</small>
+  </footer>
+
+  <script type="module" src="main.js"></script>
+
+</body>
+</html>
