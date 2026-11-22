@@ -1,0 +1,759 @@
+
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BalansCheck — PDF Parser</title>
+
+    <!-- PDF.js кітапханасы -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 30px;
+            font-family: Arial, sans-serif;
+            background: #F7F6F2;
+            color: #252923;
+        }
+
+        .container {
+            max-width: 1050px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+
+        h1 {
+            color: #71836B;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #777;
+            margin-bottom: 25px;
+        }
+
+        .upload-box {
+            padding: 22px;
+            background: #F7F6F2;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+
+        input[type="file"] {
+            max-width: 100%;
+            margin-bottom: 12px;
+        }
+
+        button {
+            background: #71836B;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #5E7058;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        .section {
+            margin-top: 25px;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+        }
+
+        .metric {
+            border: 1px solid #E2E4DF;
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .metric-title {
+            color: #777;
+            font-size: 14px;
+        }
+
+        .metric-value {
+            font-size: 22px;
+            font-weight: bold;
+            margin: 12px 0;
+        }
+
+        .metric-source {
+            font-size: 12px;
+            color: #777;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 18px;
+            border-radius: 12px;
+            font-weight: bold;
+        }
+
+        .balanced {
+            background: #E8F1E5;
+            color: #315B2D;
+        }
+
+        .discrepancy {
+            background: #F9E8E6;
+            color: #9B3028;
+        }
+
+        .insufficient {
+            background: #F2EEE2;
+            color: #765B1E;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 220px;
+            padding: 15px;
+            border: 1px solid #DDD;
+            border-radius: 10px;
+            font-family: monospace;
+            resize: vertical;
+        }
+
+        .error {
+            color: #B3261E;
+            margin-top: 12px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .note {
+            color: #777;
+            font-size: 13px;
+            margin-top: 25px;
+        }
+
+        @media(max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>BalansCheck</h1>
+
+    <p class="subtitle">
+        PDF қаржылық есептілігін автоматты түрде оқу және арифметикалық тексеру
+    </p>
+
+    <div class="upload-box">
+
+        <h3>PDF құжатын жүктеу</h3>
+
+        <input
+            type="file"
+            id="pdfFile"
+            accept=".pdf,application/pdf"
+        >
+
+        <br>
+
+        <button id="analyzeButton" onclick="analyzePDF()">
+            PDF оқу және тексеру
+        </button>
+
+        <div id="message" class="error"></div>
+
+    </div>
+
+    <div id="financialResult" class="section hidden">
+
+        <h2>Қаржылық көрсеткіштер</h2>
+
+        <div class="metrics">
+
+            <div class="metric">
+                <div class="metric-title">Активтер</div>
+                <div class="metric-value" id="assetsValue">—</div>
+                <div class="metric-source" id="assetsSource"></div>
+            </div>
+
+            <div class="metric">
+                <div class="metric-title">Міндеттемелер</div>
+                <div class="metric-value" id="liabilitiesValue">—</div>
+                <div class="metric-source" id="liabilitiesSource"></div>
+            </div>
+
+            <div class="metric">
+                <div class="metric-title">Меншікті капитал</div>
+                <div class="metric-value" id="equityValue">—</div>
+                <div class="metric-source" id="equitySource"></div>
+            </div>
+
+        </div>
+
+        <div id="balanceStatus" class="status"></div>
+
+    </div>
+
+    <div class="section">
+
+        <h2>PDF-тен алынған мәтін</h2>
+
+        <textarea
+            id="rawText"
+            readonly
+            placeholder="PDF мәтіні осы жерде көрсетіледі..."
+        ></textarea>
+
+    </div>
+
+    <p class="note">
+        Ескерту: Бұл MVP мәтіні бар PDF құжаттарын оқиды.
+        Сканерленген PDF үшін OCR технологиясы қажет.
+        Нақты қаржылық есептілікті бастапқы құжатпен салыстырып тексеріңіз.
+    </p>
+
+</div>
+
+
+<script>
+
+// ========================================
+// 1. PDF.JS БАПТАУ
+// ========================================
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+
+// ========================================
+// 2. ҚАРЖЫЛЫҚ КӨРСЕТКІШТЕР АТАУЛАРЫ
+// ========================================
+
+const FIELD_LABELS = {
+
+    assets: [
+        "Жалпы активтер",
+        "Активтер барлығы",
+        "Активтер жиыны",
+        "Баланс активі",
+        "Итого активы",
+        "Всего активов",
+        "Total assets"
+    ],
+
+    liabilities: [
+        "Жалпы міндеттемелер",
+        "Міндеттемелер барлығы",
+        "Міндеттемелер жиыны",
+        "Итого обязательства",
+        "Всего обязательств",
+        "Total liabilities"
+    ],
+
+    equity: [
+        "Жалпы меншікті капитал",
+        "Меншікті капитал барлығы",
+        "Меншікті капитал жиыны",
+        "Итого капитал",
+        "Собственный капитал",
+        "Total equity",
+        "Total shareholders' equity",
+        "Total shareholders equity"
+    ]
+
+};
+
+
+// ========================================
+// 3. REGEX ҚАУІПСІЗДІГІ
+// ========================================
+
+function escapeRegex(text) {
+
+    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+}
+
+
+// ========================================
+// 4. САНДАРДЫ ТҮРЛЕНДІРУ
+// ========================================
+
+function parseAmount(rawValue) {
+
+    let value = String(rawValue)
+        .trim()
+        .replace(/[\s\u00A0\u202F'’]/g, "");
+
+    let negative = false;
+
+    if (value.startsWith("(") && value.endsWith(")")) {
+
+        negative = true;
+        value = value.slice(1, -1);
+
+    }
+
+    if (value.startsWith("-")) {
+
+        negative = true;
+        value = value.slice(1);
+
+    }
+
+    const comma = value.lastIndexOf(",");
+    const dot = value.lastIndexOf(".");
+
+    if (comma !== -1 && dot !== -1) {
+
+        if (comma > dot) {
+
+            value = value
+                .replace(/\./g, "")
+                .replace(",", ".");
+
+        } else {
+
+            value = value.replace(/,/g, "");
+
+        }
+
+    } else if (comma !== -1 || dot !== -1) {
+
+        const separator = comma !== -1 ? "," : ".";
+        const last = value.lastIndexOf(separator);
+
+        const decimalDigits = value.length - last - 1;
+
+        if (decimalDigits === 1 || decimalDigits === 2) {
+
+            value =
+                value.slice(0, last).replace(/[,.]/g, "") +
+                "." +
+                value.slice(last + 1);
+
+        } else {
+
+            value = value.replace(/[,.]/g, "");
+
+        }
+
+    }
+
+    const result = Number(value);
+
+    if (!Number.isFinite(result)) {
+        return null;
+    }
+
+    return negative ? -result : result;
+
+}
+
+
+// ========================================
+// 5. PDF ІШІНЕН КӨРСЕТКІШТІ ТАБУ
+// ========================================
+
+function findAmountOnPage(pageText, labels) {
+
+    for (const label of labels) {
+
+        const regex = new RegExp(
+            escapeRegex(label) +
+            "\\s*[:：=\\-]?\\s*([\\(\\-]?\\s*\\d[\\d\\s\\u00A0\\u202F.,'’]*\\d?\\)?)",
+            "i"
+        );
+
+        const match = pageText.match(regex);
+
+        if (match) {
+
+            const amount = parseAmount(match[1]);
+
+            if (amount !== null) {
+
+                return {
+                    amount: amount,
+                    label: label
+                };
+
+            }
+
+        }
+
+    }
+
+    return null;
+
+}
+
+
+// ========================================
+// 6. БАРЛЫҚ PDF БЕТТЕРІНЕН ІЗДЕУ
+// ========================================
+
+function findFieldInPages(pages, labels) {
+
+    for (const page of pages) {
+
+        const found = findAmountOnPage(
+            page.text,
+            labels
+        );
+
+        if (found) {
+
+            return {
+                amount: found.amount,
+                page: page.page,
+                sourceLabel: found.label
+            };
+
+        }
+
+    }
+
+    return {
+        amount: null,
+        page: null,
+        sourceLabel: null
+    };
+
+}
+
+
+// ========================================
+// 7. PDF ФАЙЛЫН ОҚУ
+// ========================================
+
+async function readPDF(file) {
+
+    if (!file || !file.name.toLowerCase().endsWith(".pdf")) {
+
+        throw new Error("PDF форматындағы файлды таңдаңыз.");
+
+    }
+
+    const buffer = await file.arrayBuffer();
+
+    const pdf = await pdfjsLib.getDocument({
+        data: buffer
+    }).promise;
+
+    const pages = [];
+
+    let fullText = "";
+
+    for (
+        let pageNumber = 1;
+        pageNumber <= pdf.numPages;
+        pageNumber++
+    ) {
+
+        const page = await pdf.getPage(pageNumber);
+
+        const content = await page.getTextContent();
+
+        const pageText = content.items
+            .map(item => item.str)
+            .filter(Boolean)
+            .join(" ");
+
+        pages.push({
+            page: pageNumber,
+            text: pageText
+        });
+
+        fullText +=
+            `\n--- ${pageNumber}-бет ---\n` +
+            pageText;
+
+    }
+
+    return {
+        pages: pages,
+        fullText: fullText,
+        pageCount: pdf.numPages
+    };
+
+}
+
+
+// ========================================
+// 8. ҚАРЖЫЛЫҚ ДЕРЕКТЕРДІ ШЫҒАРУ
+// ========================================
+
+function extractFinancialData(pages) {
+
+    const assets = findFieldInPages(
+        pages,
+        FIELD_LABELS.assets
+    );
+
+    const liabilities = findFieldInPages(
+        pages,
+        FIELD_LABELS.liabilities
+    );
+
+    const equity = findFieldInPages(
+        pages,
+        FIELD_LABELS.equity
+    );
+
+    return {
+        assets,
+        liabilities,
+        equity
+    };
+
+}
+
+
+// ========================================
+// 9. БАЛАНСТЫ ТЕКСЕРУ
+// ========================================
+
+function validateBalance(fields) {
+
+    const assets = fields.assets.amount;
+    const liabilities = fields.liabilities.amount;
+    const equity = fields.equity.amount;
+
+    const allDataFound =
+        assets !== null &&
+        liabilities !== null &&
+        equity !== null;
+
+    if (!allDataFound) {
+
+        return {
+            status: "insufficient",
+            difference: null
+        };
+
+    }
+
+    const difference =
+        assets - (liabilities + equity);
+
+    return {
+        status: difference === 0
+            ? "balanced"
+            : "discrepancy",
+
+        difference: difference
+    };
+
+}
+
+
+// ========================================
+// 10. СОМАНЫ ФОРМАТТАУ
+// ========================================
+
+function formatMoney(value) {
+
+    if (value === null || value === undefined) {
+
+        return "Табылмады";
+
+    }
+
+    return new Intl.NumberFormat("ru-RU", {
+        maximumFractionDigits: 2
+    }).format(value) + " ₸";
+
+}
+
+
+// ========================================
+// 11. КӨРСЕТКІШТЕРДІ ЭКРАНҒА ШЫҒАРУ
+// ========================================
+
+function showField(name, field) {
+
+    document.getElementById(name + "Value").textContent =
+        formatMoney(field.amount);
+
+    let source = "";
+
+    if (field.page !== null) {
+
+        source =
+            "PDF беті: " + field.page +
+            " | Табылған атау: " + field.sourceLabel;
+
+    } else {
+
+        source = "PDF-тен табылмады";
+
+    }
+
+    document.getElementById(name + "Source").textContent =
+        source;
+
+}
+
+
+// ========================================
+// 12. БАЛАНС НӘТИЖЕСІН КӨРСЕТУ
+// ========================================
+
+function showBalance(result) {
+
+    const box = document.getElementById("balanceStatus");
+
+    box.className = "status";
+
+    if (result.status === "balanced") {
+
+        box.classList.add("balanced");
+
+        box.innerHTML = `
+            <h3>✓ Баланс тең!</h3>
+            <p>Айырмашылық: 0 ₸</p>
+            <p>Активтер = Міндеттемелер + Меншікті капитал</p>
+        `;
+
+    } else if (result.status === "discrepancy") {
+
+        box.classList.add("discrepancy");
+
+        box.innerHTML = `
+            <h3>✗ Баланста сәйкессіздік бар!</h3>
+            <p>
+                Айырмашылық:
+                ${formatMoney(result.difference)}
+            </p>
+        `;
+
+    } else {
+
+        box.classList.add("insufficient");
+
+        box.innerHTML = `
+            <h3>⚠ Дерек жеткіліксіз!</h3>
+            <p>
+                Балансты тексеру үшін активтер,
+                міндеттемелер және меншікті капитал
+                көрсеткіштерінің барлығы қажет.
+            </p>
+        `;
+
+    }
+
+}
+
+
+// ========================================
+// 13. НЕГІЗГІ ANALYZE ФУНКЦИЯСЫ
+// ========================================
+
+async function analyzePDF() {
+
+    const file = document.getElementById("pdfFile").files[0];
+
+    const button = document.getElementById("analyzeButton");
+
+    const message = document.getElementById("message");
+
+    const resultSection =
+        document.getElementById("financialResult");
+
+    message.textContent = "";
+
+    if (!file) {
+
+        message.textContent =
+            "Алдымен PDF файлын таңдаңыз.";
+
+        return;
+
+    }
+
+    button.disabled = true;
+    button.textContent = "PDF оқылып жатыр...";
+
+    resultSection.classList.add("hidden");
+
+    try {
+
+        // PDF оқу
+        const pdfData = await readPDF(file);
+
+        // PDF мәтінін көрсету
+        document.getElementById("rawText").value =
+            pdfData.fullText;
+
+        // Қаржылық деректерді шығару
+        const fields = extractFinancialData(
+            pdfData.pages
+        );
+
+        // Балансты тексеру
+        const validation = validateBalance(fields);
+
+        // Көрсеткіштерді көрсету
+        showField("assets", fields.assets);
+
+        showField("liabilities", fields.liabilities);
+
+        showField("equity", fields.equity);
+
+        // Баланс нәтижесі
+        showBalance(validation);
+
+        resultSection.classList.remove("hidden");
+
+    } catch (error) {
+
+        console.error(error);
+
+        message.textContent =
+            "Қате: " + error.message;
+
+    } finally {
+
+        button.disabled = false;
+
+        button.textContent =
+            "PDF оқу және тексеру";
+
+    }
+
+}
+
+</script>
+
+</body>
+</html>
