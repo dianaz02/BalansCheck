@@ -1,759 +1,329 @@
-
 <!DOCTYPE html>
 <html lang="kk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BalansCheck — PDF Parser</title>
-
-    <!-- PDF.js кітапханасы -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            padding: 30px;
-            font-family: Arial, sans-serif;
-            background: #F7F6F2;
-            color: #252923;
-        }
-
-        .container {
-            max-width: 1050px;
-            margin: auto;
-            background: white;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-        }
-
-        h1 {
-            color: #71836B;
-            margin-bottom: 8px;
-        }
-
-        .subtitle {
-            color: #777;
-            margin-bottom: 25px;
-        }
-
-        .upload-box {
-            padding: 22px;
-            background: #F7F6F2;
-            border-radius: 12px;
-            margin-bottom: 25px;
-        }
-
-        input[type="file"] {
-            max-width: 100%;
-            margin-bottom: 12px;
-        }
-
-        button {
-            background: #71836B;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        button:hover {
-            background: #5E7058;
-        }
-
-        button:disabled {
-            opacity: 0.6;
-            cursor: wait;
-        }
-
-        .section {
-            margin-top: 25px;
-        }
-
-        .metrics {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 15px;
-        }
-
-        .metric {
-            border: 1px solid #E2E4DF;
-            border-radius: 12px;
-            padding: 18px;
-        }
-
-        .metric-title {
-            color: #777;
-            font-size: 14px;
-        }
-
-        .metric-value {
-            font-size: 22px;
-            font-weight: bold;
-            margin: 12px 0;
-        }
-
-        .metric-source {
-            font-size: 12px;
-            color: #777;
-        }
-
-        .status {
-            margin-top: 20px;
-            padding: 18px;
-            border-radius: 12px;
-            font-weight: bold;
-        }
-
-        .balanced {
-            background: #E8F1E5;
-            color: #315B2D;
-        }
-
-        .discrepancy {
-            background: #F9E8E6;
-            color: #9B3028;
-        }
-
-        .insufficient {
-            background: #F2EEE2;
-            color: #765B1E;
-        }
-
-        textarea {
-            width: 100%;
-            min-height: 220px;
-            padding: 15px;
-            border: 1px solid #DDD;
-            border-radius: 10px;
-            font-family: monospace;
-            resize: vertical;
-        }
-
-        .error {
-            color: #B3261E;
-            margin-top: 12px;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .note {
-            color: #777;
-            font-size: 13px;
-            margin-top: 25px;
-        }
-
-        @media(max-width: 600px) {
-            body {
-                padding: 10px;
-            }
-
-            .container {
-                padding: 18px;
-            }
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BalansCheck — есептілікті PDF-тен алу және тексеру</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&family=Montserrat:wght@600;700;800&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{--bg:#f2f3fb;--card:#fff;--ink:#0e1430;--mut:#596083;--line:#dde0f0;--acc:#2f3fe0;--onacc:#fff;--hero:#2332c8;--ok:#0b8f63;--okbg:#d9f6ea;--bad:#d62b1f;--badbg:#fde3e0;--warn:#8a5a00;--warnbg:#fff0cf;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a0e22;--card:#141a36;--ink:#e8ebff;--mut:#98a0cc;--line:#262e57;--acc:#8b97ff;--onacc:#0a0e22;--hero:#17207f;--ok:#4be0a8;--okbg:#0f3328;--bad:#ff8479;--badbg:#411a1a;--warn:#f2c46a;--warnbg:#3a2d10}}
+:root[data-theme="dark"]{--bg:#0a0e22;--card:#141a36;--ink:#e8ebff;--mut:#98a0cc;--line:#262e57;--acc:#8b97ff;--onacc:#0a0e22;--hero:#17207f;--ok:#4be0a8;--okbg:#0f3328;--bad:#ff8479;--badbg:#411a1a;--warn:#f2c46a;--warnbg:#3a2d10}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "IBM Plex Sans",system-ui,sans-serif}
+.hero{background:var(--hero);color:#fff;padding:34px 18px 54px;border-radius:0 0 36px 36px}
+.hin{max-width:1060px;margin:0 auto;display:grid;grid-template-columns:1.1fr .9fr;gap:30px;align-items:center}
+@media(max-width:820px){.hin{grid-template-columns:1fr}}
+.brand{font:800 15px Montserrat,sans-serif;letter-spacing:.02em;margin-bottom:22px;display:flex;gap:8px;align-items:center}
+.brand i{width:18px;height:18px;border:3px solid #fff;border-radius:50%;display:inline-block;position:relative}
+.brand i:after{content:"";position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px;background:#5bf0b8;border-radius:50%}
+h1{font:800 clamp(28px,4.6vw,46px)/1.08 Montserrat,sans-serif;letter-spacing:-.02em;margin:0 0 14px}
+.sub{color:#cfd4ff;max-width:52ch;margin:0 0 22px;font-size:16px}
+h2{font:700 18px Montserrat,sans-serif;margin:0 0 14px}
+.drop{background:rgba(255,255,255,.1);border:2px dashed rgba(255,255,255,.45);border-radius:16px;padding:22px;cursor:pointer;transition:.2s}
+.drop:hover,.drop.on{background:rgba(255,255,255,.2);border-color:#5bf0b8}
+.drop b{display:block;font:700 16px Montserrat,sans-serif;margin-bottom:2px}.drop span{color:#cfd4ff;font-size:13px}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
+button{font:600 14px "IBM Plex Sans",sans-serif;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:10px 16px;border-radius:10px;cursor:pointer}
+button.p{background:var(--acc);border-color:var(--acc);color:var(--onacc)}
+.hero button{background:transparent;color:#fff;border-color:rgba(255,255,255,.5)}.hero button.p{background:#5bf0b8;color:#06231a;border-color:#5bf0b8}
+button:focus-visible,.drop:focus-visible,textarea:focus-visible{outline:3px solid #5bf0b8;outline-offset:2px}
+#msg{color:#cfd4ff;font-size:13px;margin-top:10px;min-height:20px}
+.scale{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:22px;padding:10px 10px 16px;text-align:center}
+.scale svg{width:100%;height:auto;display:block}
+#bst{font:700 14px Montserrat,sans-serif;min-height:22px}
+#beam{transform-origin:180px 70px;transition:transform 1.4s cubic-bezier(.3,1.7,.5,1)}
+#panL{transform-origin:60px 70px;transition:transform 1.4s cubic-bezier(.3,1.7,.5,1)}#panR{transform-origin:300px 70px;transition:transform 1.4s cubic-bezier(.3,1.7,.5,1)}
+.idle{animation:sw 4s ease-in-out infinite}.idle #panL,.idle #panR{}
+@keyframes sw{50%{transform:rotate(3deg)}0%,100%{transform:rotate(-3deg)}}
+@media(prefers-reduced-motion:reduce){.idle{animation:none}#beam,#panL,#panR{transition:none}}
+.sv{font:600 12px "IBM Plex Mono",monospace;fill:#fff}.sl{font:700 9px Montserrat,sans-serif;fill:#b9c0ff}
+.wrap{max-width:1060px;margin:-26px auto 0;padding:0 18px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:16px}
+details summary{cursor:pointer;color:var(--mut);font-size:13px}
+textarea{width:100%;min-height:150px;margin-top:10px;font:12.5px/1.5 "IBM Plex Mono",monospace;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical}
+.verdict{padding:16px 18px;border-radius:16px;font:600 15px/1.4 Montserrat,sans-serif;margin-bottom:16px;border:2px solid currentColor}
+.verdict.ok{background:var(--okbg);color:var(--ok)}.verdict.bad{background:var(--badbg);color:var(--bad)}.verdict.warn{background:var(--warnbg);color:var(--warn)}
+.stats,.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.st,.kp{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.st small,.kp small{color:var(--mut);display:block;font-size:13px}
+.st strong,.kp strong{font:800 28px Montserrat,sans-serif;font-variant-numeric:tabular-nums}
+.kp em{font-style:normal;color:var(--mut);font-size:12px;display:block}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--mut);font-weight:500;font-size:13px}
+td.n,th.n{text-align:right;font:500 13px "IBM Plex Mono",monospace;white-space:nowrap}
+.b{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:600}
+.b.ok{background:var(--okbg);color:var(--ok)}.b.bad{background:var(--badbg);color:var(--bad)}.b.na{background:var(--bg);color:var(--mut)}.b.calc{background:var(--warnbg);color:var(--warn)}
+.why{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.why div{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.why b{display:block;font:700 15px Montserrat,sans-serif;margin-bottom:4px}.why span{color:var(--mut);font-size:13.5px}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13.5px;color:var(--mut)}
+.flow b{background:var(--accbg,var(--bg));color:var(--ink);border:1px solid var(--line);padding:5px 12px;border-radius:99px}
+</style>
 </head>
-
 <body>
+<header class="hero"><div class="hin">
+<div>
+<div class="brand"><i></i>BalansCheck</div>
+<h1>Баланс теңгерілмесе, есептілікке сенуге болмайды.</h1>
+<p class="sub">PDF есептілікті жүктеңіз — жүйе баптарды өзі оқиды, арифметикалық теңдіктермен салыстырып, қатені секундта көрсетеді.</p>
+<div class="drop" id="drop" tabindex="0" role="button" aria-label="PDF таңдау"><b>PDF файлды осы жерге тастаңыз</b><span>Баланс · Пайда мен залал · Ақша қозғалысы (KZ / RU / EN)</span></div>
+<input type="file" id="file" accept="application/pdf" hidden>
+<div class="row"><button class="p" id="demo">Демомен көру</button><button id="run">Мәтіннен талдау</button></div>
+<div id="msg" role="status"></div>
+</div>
+<div class="scale">
+<svg viewBox="0 0 360 250" role="img" aria-label="Активтер мен міндеттеме және капитал салмағы">
+<rect x="130" y="228" width="100" height="10" rx="5" fill="#fff" opacity=".85"/><rect x="175" y="70" width="10" height="160" fill="#fff" opacity=".85"/>
+<g id="beam" class="idle"><rect x="40" y="66" width="280" height="8" rx="4" fill="#fff"/>
+<g id="panL"><path d="M60 74L20 150M60 74L100 150" stroke="#fff" stroke-width="2" fill="none"/><path d="M12 150h96a48 20 0 0 1-96 0z" fill="#fff"/><text class="sl" x="60" y="190" text-anchor="middle">АКТИВТЕР</text><text id="pl" class="sv" x="60" y="208" text-anchor="middle">—</text></g>
+<g id="panR"><path d="M300 74L260 150M300 74L340 150" stroke="#fff" stroke-width="2" fill="none"/><path d="M252 150h96a48 20 0 0 1-96 0z" fill="#fff"/><text class="sl" x="300" y="190" text-anchor="middle">МІНДЕТТЕМЕ + КАПИТАЛ</text><text id="pr" class="sv" x="300" y="208" text-anchor="middle">—</text></g></g>
+<circle id="piv" cx="180" cy="70" r="9" fill="#5bf0b8" stroke="#fff" stroke-width="3"/></svg>
+<div id="bst">Құжат күтілуде</div></div>
+</div></header>
 
-<div class="container">
-
-    <h1>BalansCheck</h1>
-
-    <p class="subtitle">
-        PDF қаржылық есептілігін автоматты түрде оқу және арифметикалық тексеру
-    </p>
-
-    <div class="upload-box">
-
-        <h3>PDF құжатын жүктеу</h3>
-
-        <input
-            type="file"
-            id="pdfFile"
-            accept=".pdf,application/pdf"
-        >
-
-        <br>
-
-        <button id="analyzeButton" onclick="analyzePDF()">
-            PDF оқу және тексеру
-        </button>
-
-        <div id="message" class="error"></div>
-
-    </div>
-
-    <div id="financialResult" class="section hidden">
-
-        <h2>Қаржылық көрсеткіштер</h2>
-
-        <div class="metrics">
-
-            <div class="metric">
-                <div class="metric-title">Активтер</div>
-                <div class="metric-value" id="assetsValue">—</div>
-                <div class="metric-source" id="assetsSource"></div>
-            </div>
-
-            <div class="metric">
-                <div class="metric-title">Міндеттемелер</div>
-                <div class="metric-value" id="liabilitiesValue">—</div>
-                <div class="metric-source" id="liabilitiesSource"></div>
-            </div>
-
-            <div class="metric">
-                <div class="metric-title">Меншікті капитал</div>
-                <div class="metric-value" id="equityValue">—</div>
-                <div class="metric-source" id="equitySource"></div>
-            </div>
-
-        </div>
-
-        <div id="balanceStatus" class="status"></div>
-
-    </div>
-
-    <div class="section">
-
-        <h2>PDF-тен алынған мәтін</h2>
-
-        <textarea
-            id="rawText"
-            readonly
-            placeholder="PDF мәтіні осы жерде көрсетіледі..."
-        ></textarea>
-
-    </div>
-
-    <p class="note">
-        Ескерту: Бұл MVP мәтіні бар PDF құжаттарын оқиды.
-        Сканерленген PDF үшін OCR технологиясы қажет.
-        Нақты қаржылық есептілікті бастапқы құжатпен салыстырып тексеріңіз.
-    </p>
-
+<div class="wrap">
+<div id="out" hidden>
+<div id="verdict"></div><div class="stats" id="stats"></div><div class="kpis" id="kpi"></div>
+<div class="card"><h2>Арифметикалық тексеру</h2><div class="tw"><table id="chk"></table></div></div>
+<div class="card"><h2>PDF-тен алынған көрсеткіштер</h2><div class="tw"><table id="ext"></table></div>
+<div class="row"><button class="p" id="bj">JSON жүктеу</button><button id="bc">CSV жүктеу</button></div></div>
+</div>
+<div class="card"><details><summary>Алынған мәтінді көру немесе қолмен өңдеу</summary><textarea id="txt" spellcheck="false" placeholder="Бап атауы [Tab] ағымдағы жыл [Tab] өткен жыл"></textarea></details></div>
+<h2 style="margin-top:26px">Компанияға не береді</h2>
+<div class="why">
+<div><b>Қолмен енгізуді жояды</b><span>Аналитик Excel-ге көшіріп отырмайды: бір құжат — бірнеше секунд.</span></div>
+<div><b>Қатені дереу ұстайды</b><span>8 бухгалтерлік теңдік екі кезең бойынша тексеріледі, айырма көрсетіледі.</span></div>
+<div><b>Құпиялылық</b><span>PDF браузерде өңделеді, серверге жіберілмейді.</span></div>
+<div><b>Дайын экспорт</b><span>JSON/CSV — ERP, 1С немесе BI жүйесіне жіберуге дайын.</span></div>
+</div>
+<h2 style="margin-top:26px">Конвейер</h2>
+<div class="flow"><b>PDF</b>→<b>Мәтін қабаты</b>→<b>Жолдар мен сандар</b>→<b>KZ/RU/EN сөздігі</b>→<b>Арифметикалық салыстыру</b>→<b>Сенімділік %</b>→<b>JSON / CSV</b></div>
 </div>
 
-
 <script>
+const DEMO=`Қаржылық жағдай туралы есеп / Бухгалтерский баланс\t31.12.2025\t31.12.2024
+Негізгі құралдар / Основные средства\t4 820 500\t4 310 200
+Материалдық емес активтер / Нематериальные активы\t310 000\t280 000
+Итого долгосрочные активы\t5 130 500\t4 590 200
+Запасы\t1 250 300\t1 100 000
+Торговая дебиторская задолженность\t2 040 000\t1 870 400
+Денежные средства и их эквиваленты\t980 700\t720 400
+Итого краткосрочные активы\t4 271 000\t3 690 800
+Итого активы\t9 401 500\t8 281 000
+Уставный капитал\t1 000 000\t1 000 000
+Нераспределенная прибыль\t3 350 000\t2 710 000
+Итого капитал\t4 350 000\t3 710 000
+Займы долгосрочные\t2 100 000\t2 300 000
+Итого долгосрочные обязательства\t2 100 000\t2 300 000
+Краткосрочная кредиторская задолженность\t2 951 500\t2 271 000
+Итого краткосрочные обязательства\t2 951 500\t2 271 000
+Итого обязательства\t5 051 500\t4 571 000
+Итого обязательства и капитал\t9 401 500\t8 281 000
+Отчет о прибылях и убытках
+Выручка\t12 500 000\t10 900 000
+Себестоимость реализации\t(8 100 000)\t(7 150 000)
+Валовая прибыль\t4 400 000\t3 750 000
+Операционная прибыль\t1 150 000\t980 000
+Прибыль до налогообложения\t1 025 000\t850 000
+Расход по подоходному налогу\t(205 000)\t(170 000)
+Чистая прибыль\t820 000\t690 000
+Отчет о движении денежных средств
+Чистая сумма денежных средств от операционной деятельности\t1 100 000\t940 000
+Чистая сумма денежных средств от инвестиционной деятельности\t(650 000)\t(520 000)
+Чистая сумма денежных средств от финансовой деятельности\t(190 000)\t(210 000)
+Чистое увеличение денежных средств\t260 300\t210 000
+Денежные средства на начало периода\t720 400\t510 400
+Денежные средства на конец периода\t980 700\t720 400`;
 
-// ========================================
-// 1. PDF.JS БАПТАУ
-// ========================================
+const FIELDS=[
+['tle',/(итого|всего)\s+(обязательств\w*\s+и\s+капитал|капитал\w*\s+и\s+обязательств)|total liabilities and equity|(капитал мен міндеттемелер|міндеттемелер мен капитал)/,'Пассив жиыны'],
+['nca',/(итого|всего)\s+(долгосрочн\S+\s+актив|внеоборотн)|total non-?current assets|ұзақ мерзімді активтер.*жиыны/,'Ұзақ мерзімді активтер'],
+['ca',/(итого|всего)\s+(краткосрочн\S+\s+актив|оборотн)|total current assets|қысқа мерзімді активтер.*жиыны/,'Қысқа мерзімді активтер'],
+['assets',/(итого|всего)\s+актив|total assets|активтер жиыны|жиынтық активтер/,'Активтер жиыны'],
+['ncl',/(итого|всего)\s+долгосрочн\S+\s+обязательств|total non-?current liabilities|ұзақ мерзімді міндеттемелер.*жиыны/,'Ұзақ мерзімді міндеттемелер'],
+['cl',/(итого|всего)\s+краткосрочн\S+\s+обязательств|total current liabilities|қысқа мерзімді міндеттемелер.*жиыны/,'Қысқа мерзімді міндеттемелер'],
+['liab',/(итого|всего)\s+обязательств|total liabilities|міндеттемелер жиыны|жиынтық міндеттемелер/,'Міндеттемелер жиыны'],
+['eq',/(итого|всего)\s+капитал|total equity|капитал жиыны|жиынтық капитал/,'Капитал жиыны'],
+['gp',/валовая прибыль|gross profit|жалпы пайда/,'Жалпы пайда'],
+['rev',/^(выручка|доход\w* от реализации|revenue|түсім|сатудан түскен түсім)/,'Түсім'],
+['cogs',/себестоимость|cost of (sales|goods)|өзіндік құн/,'Өзіндік құн'],
+['pbt',/прибыль до налогообложения|profit before (income )?tax|салық салуға дейінгі/,'Салық алдындағы пайда'],
+['tax',/подоходн\S*\s+налог|income tax|табыс салығы/,'Табыс салығы'],
+['np',/чистая прибыль|прибыль за (год|период)|net profit|profit for the (year|period)|таза пайда/,'Таза пайда'],
+['cfo',/денежных средств от операционной|net cash.*operating|операциялық қызметтен/,'Операциялық ақша ағыны'],
+['cfi',/денежных средств от инвестиционной|net cash.*investing|инвестициялық қызметтен/,'Инвестициялық ақша ағыны'],
+['cff',/денежных средств от финансовой|net cash.*financing|қаржылық қызметтен/,'Қаржылық ақша ағыны'],
+['nch',/чистое (увеличение|изменение|уменьшение)|net (increase|change)|ақшаның таза/,'Ақшаның таза өзгерісі'],
+['cb',/на начало|at (the )?beginning|beginning of|кезең басына/,'Ақша — кезең басында'],
+['ce',/на конец|at (the )?end|end of (the )?(period|year)|кезең соңына/,'Ақша — кезең соңында']
+];
+const LABEL=Object.fromEntries(FIELDS.map(f=>[f[0],f[2]]));
+const RULES=[
+['Активтер = ҰМ активтер + ҚМ активтер','assets',[['nca',1],['ca',1]]],
+['Активтер = Міндеттемелер + Капитал','assets',[['liab',1],['eq',1]]],
+['Активтер = Пассив жиыны','assets',[['tle',1]]],
+['Міндеттемелер = ҰМ + ҚМ міндеттемелер','liab',[['ncl',1],['cl',1]]],
+['Жалпы пайда = Түсім − Өзіндік құн','gp',[['rev',1],['cogs',-1]]],
+['Таза пайда = Салық алдындағы пайда − Салық','np',[['pbt',1],['tax',-1]]],
+['Ақша өзгерісі = ОҚ + ИҚ + ҚҚ ағындары','nch',[['cfo',1],['cfi',1],['cff',1]]],
+['Кезең соңы = Басы + Өзгеріс','ce',[['cb',1],['nch',1]]]
+];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=v=>v==null?'—':v.toLocaleString('ru-RU',{maximumFractionDigits:2});
 
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-
-
-// ========================================
-// 2. ҚАРЖЫЛЫҚ КӨРСЕТКІШТЕР АТАУЛАРЫ
-// ========================================
-
-const FIELD_LABELS = {
-
-    assets: [
-        "Жалпы активтер",
-        "Активтер барлығы",
-        "Активтер жиыны",
-        "Баланс активі",
-        "Итого активы",
-        "Всего активов",
-        "Total assets"
-    ],
-
-    liabilities: [
-        "Жалпы міндеттемелер",
-        "Міндеттемелер барлығы",
-        "Міндеттемелер жиыны",
-        "Итого обязательства",
-        "Всего обязательств",
-        "Total liabilities"
-    ],
-
-    equity: [
-        "Жалпы меншікті капитал",
-        "Меншікті капитал барлығы",
-        "Меншікті капитал жиыны",
-        "Итого капитал",
-        "Собственный капитал",
-        "Total equity",
-        "Total shareholders' equity",
-        "Total shareholders equity"
-    ]
-
-};
-
-
-// ========================================
-// 3. REGEX ҚАУІПСІЗДІГІ
-// ========================================
-
-function escapeRegex(text) {
-
-    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
+function parseNum(s){
+  s=s.trim(); if(/^[-–—]$/.test(s)) return 0;
+  const neg=/^\(.*\)$/.test(s)||/^[-−–]/.test(s);
+  s=s.replace(/[()\-−–\s\u00a0]/g,'');
+  if(!s||!/^[\d.,]+$/.test(s)||!/\d/.test(s)) return null;
+  const c=s.lastIndexOf(','),d=s.lastIndexOf('.');
+  if(c>-1&&d>-1){const dec=c>d?',':'.';s=dec===','?s.replace(/\./g,'').replace(',','.'):s.replace(/,/g,'')}
+  else if(c>-1||d>-1){const sep=c>-1?',':'.';const n=s.split(sep).length-1;
+    if(n>1||(/^\d{1,3}[.,]\d{3}$/.test(s)))s=s.split(sep).join('');else s=s.replace(sep,'.')}
+  const v=parseFloat(s);return isNaN(v)?null:(neg?-v:v);
 }
 
-
-// ========================================
-// 4. САНДАРДЫ ТҮРЛЕНДІРУ
-// ========================================
-
-function parseAmount(rawValue) {
-
-    let value = String(rawValue)
-        .trim()
-        .replace(/[\s\u00A0\u202F'’]/g, "");
-
-    let negative = false;
-
-    if (value.startsWith("(") && value.endsWith(")")) {
-
-        negative = true;
-        value = value.slice(1, -1);
-
+function extract(text){
+  const V={};
+  for(const line of text.split(/\r?\n/)){
+    const cells=line.split(/\t| {2,}/).map(x=>x.trim()).filter(Boolean);
+    let label=[],nums=[];
+    for(const c of cells){const n=parseNum(c);if(n!==null&&label.length)nums.push(n);else if(n===null&&!nums.length)label.push(c)}
+    if(!label.length||!nums.length)continue;
+    const l=label.join(' ').toLowerCase().replace(/^[\d.\s)\-]+/,'');
+    const vals=nums.length>=3?nums.slice(-2):[nums[0],nums.length>1?nums[1]:null];
+    for(const [k,re] of FIELDS){
+      if(re.test(l)){
+        if(!V[k]){const a=(k==='cogs'||k==='tax')?vals.map(x=>x==null?x:Math.abs(x)):vals;V[k]={v:a,line:label.join(' ')}}
+        break;
+      }
     }
-
-    if (value.startsWith("-")) {
-
-        negative = true;
-        value = value.slice(1);
-
-    }
-
-    const comma = value.lastIndexOf(",");
-    const dot = value.lastIndexOf(".");
-
-    if (comma !== -1 && dot !== -1) {
-
-        if (comma > dot) {
-
-            value = value
-                .replace(/\./g, "")
-                .replace(",", ".");
-
-        } else {
-
-            value = value.replace(/,/g, "");
-
-        }
-
-    } else if (comma !== -1 || dot !== -1) {
-
-        const separator = comma !== -1 ? "," : ".";
-        const last = value.lastIndexOf(separator);
-
-        const decimalDigits = value.length - last - 1;
-
-        if (decimalDigits === 1 || decimalDigits === 2) {
-
-            value =
-                value.slice(0, last).replace(/[,.]/g, "") +
-                "." +
-                value.slice(last + 1);
-
-        } else {
-
-            value = value.replace(/[,.]/g, "");
-
-        }
-
-    }
-
-    const result = Number(value);
-
-    if (!Number.isFinite(result)) {
-        return null;
-    }
-
-    return negative ? -result : result;
-
+  }
+  return V;
 }
 
+function isDerived(item,p){return !!item&&(item.cp||[]).includes(p)}
 
-// ========================================
-// 5. PDF ІШІНЕН КӨРСЕТКІШТІ ТАБУ
-// ========================================
-
-function findAmountOnPage(pageText, labels) {
-
-    for (const label of labels) {
-
-        const regex = new RegExp(
-            escapeRegex(label) +
-            "\\s*[:：=\\-]?\\s*([\\(\\-]?\\s*\\d[\\d\\s\\u00A0\\u202F.,'’]*\\d?\\)?)",
-            "i"
-        );
-
-        const match = pageText.match(regex);
-
-        if (match) {
-
-            const amount = parseAmount(match[1]);
-
-            if (amount !== null) {
-
-                return {
-                    amount: amount,
-                    label: label
-                };
-
-            }
-
-        }
-
-    }
-
-    return null;
-
+function fieldSource(item){
+  const pdf=[0,1].some(p=>item.v[p]!=null&&!isDerived(item,p));
+  const derived=[0,1].some(p=>item.v[p]!=null&&isDerived(item,p));
+  return pdf&&derived?{label:'Аралас',className:'calc'}:derived?{label:'Есептелген',className:'calc'}:{label:'PDF',className:'ok'};
 }
 
-
-// ========================================
-// 6. БАРЛЫҚ PDF БЕТТЕРІНЕН ІЗДЕУ
-// ========================================
-
-function findFieldInPages(pages, labels) {
-
-    for (const page of pages) {
-
-        const found = findAmountOnPage(
-            page.text,
-            labels
-        );
-
-        if (found) {
-
-            return {
-                amount: found.amount,
-                page: page.page,
-                sourceLabel: found.label
-            };
-
-        }
-
-    }
-
-    return {
-        amount: null,
-        page: null,
-        sourceLabel: null
-    };
-
+function infer(V){
+  for(let it=0;it<3;it++)for(const [,lhs,rhs] of RULES)for(const p of [0,1]){
+    const has=k=>V[k]&&V[k].v[p]!=null;
+    const keys=[[lhs,1],...rhs.map(r=>[r[0],-r[1]])];
+    const miss=keys.filter(k=>!has(k[0]));
+    if(miss.length!==1)continue;
+    const [mk,ms]=miss[0];
+    // lhs - sum(rhs)=0  → missing = -(sum of others with sign)/sign
+    let acc=0;for(const [k,s] of keys)if(k!==mk)acc+=s*V[k].v[p];
+    const val=-acc/ms;
+    if(!V[mk])V[mk]={v:[null,null],line:'(теңдіктен есептелген)'};
+    V[mk].v[p]=Math.round(val*100)/100;V[mk].cp=(V[mk].cp||[]).concat(p);
+  }
 }
 
-
-// ========================================
-// 7. PDF ФАЙЛЫН ОҚУ
-// ========================================
-
-async function readPDF(file) {
-
-    if (!file || !file.name.toLowerCase().endsWith(".pdf")) {
-
-        throw new Error("PDF форматындағы файлды таңдаңыз.");
-
-    }
-
-    const buffer = await file.arrayBuffer();
-
-    const pdf = await pdfjsLib.getDocument({
-        data: buffer
-    }).promise;
-
-    const pages = [];
-
-    let fullText = "";
-
-    for (
-        let pageNumber = 1;
-        pageNumber <= pdf.numPages;
-        pageNumber++
-    ) {
-
-        const page = await pdf.getPage(pageNumber);
-
-        const content = await page.getTextContent();
-
-        const pageText = content.items
-            .map(item => item.str)
-            .filter(Boolean)
-            .join(" ");
-
-        pages.push({
-            page: pageNumber,
-            text: pageText
-        });
-
-        fullText +=
-            `\n--- ${pageNumber}-бет ---\n` +
-            pageText;
-
-    }
-
-    return {
-        pages: pages,
-        fullText: fullText,
-        pageCount: pdf.numPages
-    };
-
+function check(V){
+  const res=[];
+  for(const [name,lhs,rhs] of RULES)for(const p of [0,1]){
+    const ks=[lhs,...rhs.map(r=>r[0])];
+    const ok=ks.every(k=>V[k]&&V[k].v[p]!=null&&!isDerived(V[k],p));
+    if(!ok){res.push({name,p,st:'na'});continue}
+    const L=V[lhs].v[p],S=rhs.reduce((a,[k,s])=>a+s*V[k].v[p],0),diff=L-S;
+    const tol=Math.max(1,Math.abs(L)*0.0005);
+    res.push({name,p,st:Math.abs(diff)<=tol?'ok':'bad',L,S,diff});
+  }
+  return res;
 }
 
-
-// ========================================
-// 8. ҚАРЖЫЛЫҚ ДЕРЕКТЕРДІ ШЫҒАРУ
-// ========================================
-
-function extractFinancialData(pages) {
-
-    const assets = findFieldInPages(
-        pages,
-        FIELD_LABELS.assets
-    );
-
-    const liabilities = findFieldInPages(
-        pages,
-        FIELD_LABELS.liabilities
-    );
-
-    const equity = findFieldInPages(
-        pages,
-        FIELD_LABELS.equity
-    );
-
-    return {
-        assets,
-        liabilities,
-        equity
-    };
-
+function render(V,R){
+  const pass=R.filter(r=>r.st==='ok').length,bad=R.filter(r=>r.st==='bad').length,tot=pass+bad;
+  const found=Object.values(V).filter(x=>[0,1].some(p=>x.v[p]!=null&&!isDerived(x,p))).length;
+  const rec=Object.values(V).filter(x=>[0,1].some(p=>x.v[p]!=null&&isDerived(x,p))).length;
+  const rel=tot?Math.round(pass/tot*100):0;
+  $('#out').hidden=false;
+  let vc,vt;
+  if(!tot){vc='warn';vt='Тексеруге жеткілікті бап табылмады. Мәтінді тексеріп, баптар атауын қараңыз (сканерленген PDF үшін OCR қажет).'}
+  else if(!bad){vc='ok';vt='Барлық қолжетімді теңдіктер орындалды — алынған деректер арифметикалық тұрғыдан сенімді.'}
+  else{vc='bad';vt=`${bad} теңдікте сәйкессіздік табылды — құжатты қолмен тексеру немесе OCR/оқу қатесін түзету қажет.`}
+  $('#verdict').innerHTML=`<div class="verdict ${vc}" role="status">${vt}</div>`;
+  $('#stats').innerHTML=`<div class="st"><small>Сенімділік</small><strong>${rel}%</strong></div><div class="st"><small>Өткен теңдіктер</small><strong>${pass} / ${tot}</strong></div><div class="st"><small>PDF-тен алынған баптар</small><strong>${found}</strong></div><div class="st"><small>Теңдіктен толтырылған</small><strong>${rec}</strong></div>`;
+  $('#chk').innerHTML=`<tr><th>Теңдік</th><th>Кезең</th><th class="n">Сол жағы</th><th class="n">Оң жағы</th><th class="n">Айырма</th><th>Күй</th></tr>`+R.map(r=>`<tr><td>${esc(r.name)}</td><td>${r.p?'Өткен жыл':'Ағымдағы жыл'}</td><td class="n">${fmt(r.L)}</td><td class="n">${fmt(r.S)}</td><td class="n">${r.diff==null?'—':fmt(r.diff)}</td><td><span class="b ${r.st}">${r.st==='ok'?'Сәйкес':r.st==='bad'?'Қате':'Дерек жоқ'}</span></td></tr>`).join('');
+  $('#ext').innerHTML=`<tr><th>Көрсеткіш</th><th>PDF-тегі жол</th><th class="n">Ағымдағы жыл</th><th class="n">Өткен жыл</th><th>Көзі</th></tr>`+FIELDS.filter(f=>V[f[0]]).map(([k])=>{const source=fieldSource(V[k]);return `<tr><td>${LABEL[k]}</td><td>${esc(V[k].line)}</td><td class="n">${fmt(V[k].v[0])}</td><td class="n">${fmt(V[k].v[1])}</td><td><span class="b ${source.className}">${source.label}</span></td></tr>`}).join('');
+  window.__res={V,R,rel};
 }
 
-
-// ========================================
-// 9. БАЛАНСТЫ ТЕКСЕРУ
-// ========================================
-
-function validateBalance(fields) {
-
-    const assets = fields.assets.amount;
-    const liabilities = fields.liabilities.amount;
-    const equity = fields.equity.amount;
-
-    const allDataFound =
-        assets !== null &&
-        liabilities !== null &&
-        equity !== null;
-
-    if (!allDataFound) {
-
-        return {
-            status: "insufficient",
-            difference: null
-        };
-
-    }
-
-    const difference =
-        assets - (liabilities + equity);
-
-    return {
-        status: difference === 0
-            ? "balanced"
-            : "discrepancy",
-
-        difference: difference
-    };
-
+function analyze(){
+  const V=extract($('#txt').value);infer(V);render(V,check(V));
+  $('#out').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
-
-// ========================================
-// 10. СОМАНЫ ФОРМАТТАУ
-// ========================================
-
-function formatMoney(value) {
-
-    if (value === null || value === undefined) {
-
-        return "Табылмады";
-
+async function readPdf(file){
+  $('#msg').textContent='PDF оқылуда…';
+  try{
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+    let out=[];
+    for(let i=1;i<=pdf.numPages;i++){
+      const tc=await (await pdf.getPage(i)).getTextContent();
+      const rows={};
+      for(const it of tc.items){if(!it.str.trim())continue;const y=Math.round(it.transform[5]/3);(rows[y]=rows[y]||[]).push(it)}
+      for(const y of Object.keys(rows).map(Number).sort((a,b)=>b-a)){
+        const its=rows[y].sort((a,b)=>a.transform[4]-b.transform[4]);let s='',end=null;
+        for(const it of its){const x=it.transform[4];s+=(end===null?'':(x-end>6?'\t':' '))+it.str.trim();end=x+it.width}
+        out.push(s);
+      }
     }
-
-    return new Intl.NumberFormat("ru-RU", {
-        maximumFractionDigits: 2
-    }).format(value) + " ₸";
-
+    const t=out.join('\n');$('#txt').value=t;
+    if(t.replace(/\s/g,'').length<40){$('#msg').textContent='Бұл PDF-те мәтін қабаты жоқ (скан). Келесі нұсқада OCR қосылады.';return}
+    $('#msg').textContent=`${pdf.numPages} бет оқылды.`;analyze();
+  }catch(e){$('#msg').textContent='PDF оқу қатесі: '+e.message}
 }
 
-
-// ========================================
-// 11. КӨРСЕТКІШТЕРДІ ЭКРАНҒА ШЫҒАРУ
-// ========================================
-
-function showField(name, field) {
-
-    document.getElementById(name + "Value").textContent =
-        formatMoney(field.amount);
-
-    let source = "";
-
-    if (field.page !== null) {
-
-        source =
-            "PDF беті: " + field.page +
-            " | Табылған атау: " + field.sourceLabel;
-
-    } else {
-
-        source = "PDF-тен табылмады";
-
-    }
-
-    document.getElementById(name + "Source").textContent =
-        source;
-
-}
-
-
-// ========================================
-// 12. БАЛАНС НӘТИЖЕСІН КӨРСЕТУ
-// ========================================
-
-function showBalance(result) {
-
-    const box = document.getElementById("balanceStatus");
-
-    box.className = "status";
-
-    if (result.status === "balanced") {
-
-        box.classList.add("balanced");
-
-        box.innerHTML = `
-            <h3>✓ Баланс тең!</h3>
-            <p>Айырмашылық: 0 ₸</p>
-            <p>Активтер = Міндеттемелер + Меншікті капитал</p>
-        `;
-
-    } else if (result.status === "discrepancy") {
-
-        box.classList.add("discrepancy");
-
-        box.innerHTML = `
-            <h3>✗ Баланста сәйкессіздік бар!</h3>
-            <p>
-                Айырмашылық:
-                ${formatMoney(result.difference)}
-            </p>
-        `;
-
-    } else {
-
-        box.classList.add("insufficient");
-
-        box.innerHTML = `
-            <h3>⚠ Дерек жеткіліксіз!</h3>
-            <p>
-                Балансты тексеру үшін активтер,
-                міндеттемелер және меншікті капитал
-                көрсеткіштерінің барлығы қажет.
-            </p>
-        `;
-
-    }
-
-}
-
-
-// ========================================
-// 13. НЕГІЗГІ ANALYZE ФУНКЦИЯСЫ
-// ========================================
-
-async function analyzePDF() {
-
-    const file = document.getElementById("pdfFile").files[0];
-
-    const button = document.getElementById("analyzeButton");
-
-    const message = document.getElementById("message");
-
-    const resultSection =
-        document.getElementById("financialResult");
-
-    message.textContent = "";
-
-    if (!file) {
-
-        message.textContent =
-            "Алдымен PDF файлын таңдаңыз.";
-
-        return;
-
-    }
-
-    button.disabled = true;
-    button.textContent = "PDF оқылып жатыр...";
-
-    resultSection.classList.add("hidden");
-
-    try {
-
-        // PDF оқу
-        const pdfData = await readPDF(file);
-
-        // PDF мәтінін көрсету
-        document.getElementById("rawText").value =
-            pdfData.fullText;
-
-        // Қаржылық деректерді шығару
-        const fields = extractFinancialData(
-            pdfData.pages
-        );
-
-        // Балансты тексеру
-        const validation = validateBalance(fields);
-
-        // Көрсеткіштерді көрсету
-        showField("assets", fields.assets);
-
-        showField("liabilities", fields.liabilities);
-
-        showField("equity", fields.equity);
-
-        // Баланс нәтижесі
-        showBalance(validation);
-
-        resultSection.classList.remove("hidden");
-
-    } catch (error) {
-
-        console.error(error);
-
-        message.textContent =
-            "Қате: " + error.message;
-
-    } finally {
-
-        button.disabled = false;
-
-        button.textContent =
-            "PDF оқу және тексеру";
-
-    }
-
-}
-
+function dl(name,data,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.click()}
+$('#drop').onclick=()=>$('#file').click();
+$('#drop').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('#file').click()}};
+$('#file').onchange=e=>e.target.files[0]&&readPdf(e.target.files[0]);
+$('#drop').ondragover=e=>{e.preventDefault();$('#drop').classList.add('on')};
+$('#drop').ondragleave=()=>$('#drop').classList.remove('on');
+$('#drop').ondrop=e=>{e.preventDefault();$('#drop').classList.remove('on');e.dataTransfer.files[0]&&readPdf(e.dataTransfer.files[0])};
+$('#demo').onclick=()=>{$('#txt').value=DEMO;$('#msg').textContent='Демода әдейі 2 қате бар: өткен жылғы таза пайда және ағымдағы жылғы ақша өзгерісі — жүйе оларды табады.';analyze()};
+$('#run').onclick=()=>{if(!$('#txt').value.trim()){$('#msg').textContent='Алдымен PDF жүктеңіз немесе мәтін қойыңыз.';return}analyze()};
+$('#bj').onclick=()=>{const r=window.__res;dl('financials.json',JSON.stringify({reliability:r.rel,items:Object.fromEntries(Object.entries(r.V).map(([k,x])=>[k,{label:LABEL[k],current:x.v[0],prior:x.v[1],derived:{current:isDerived(x,0),prior:isDerived(x,1)}}])),checks:r.R},null,2),'application/json')};
+$('#bc').onclick=()=>{const r=window.__res;let c='\ufeffkey,label,current,prior,source\n'+Object.entries(r.V).map(([k,x])=>[k,'"'+LABEL[k]+'"',x.v[0]??'',x.v[1]??'',fieldSource(x).label].join(',')).join('\n');dl('financials.csv',c,'text/csv')};
 </script>
-
+<script>
+const _render=render;
+render=function(V,R){_render(V,R);extra(V)};
+function extra(V){
+  const g=(k,p)=>V[k]&&V[k].v[p]!=null?V[k].v[p]:null;
+  const isOriginal=(k,p)=>g(k,p)!=null&&!isDerived(V[k],p);
+  const A=g('assets',0),L=g('liab',0),E=g('eq',0);let a=0,t='Баланс бойынша дерек жеткіліксіз';
+  $('#beam').classList.remove('idle');
+  $('#pl').textContent='—';$('#pr').textContent='—';$('#piv').style.fill='#b9c0ff';
+  if(isOriginal('assets',0)&&isOriginal('liab',0)&&isOriginal('eq',0)){
+    const d=A-(L+E),ok=Math.abs(d)<=Math.max(1,Math.abs(A)*.0005);
+    a=ok?0:-Math.sign(d)*Math.max(6,Math.min(14,Math.abs(d)/Math.abs(A)*300));
+    $('#pl').textContent=fmt(A);$('#pr').textContent=fmt(L+E);
+    t=ok?'Баланс теңгерілген ✓':'Теңгерілмеген: айырма '+fmt(d);
+    $('#piv').style.fill=ok?'#5bf0b8':'#ff6b5e';
+  }
+  $('#beam').style.transform=`rotate(${a}deg)`;
+  $('#panL').style.transform=`rotate(${-a}deg)`;$('#panR').style.transform=`rotate(${-a}deg)`;
+  $('#bst').textContent=t;
+  const dv=(x,y)=>x==null||y==null||y===0?null:x/y;
+  const f=p=>({cr:dv(g('ca',p),g('cl',p)),de:dv(g('liab',p),g('eq',p)),nm:dv(g('np',p),g('rev',p)),roe:dv(g('np',p),g('eq',p))});
+  const c=f(0),q=f(1),gr=dv(g('rev',0),g('rev',1));
+  const x=v=>v==null?'—':v.toFixed(2),pc=v=>v==null?'—':(v*100).toFixed(1)+'%';
+  const K=[['Ағымдағы өтімділік',x(c.cr),'өткен жыл: '+x(q.cr)],['Қарыз / Капитал',x(c.de),'өткен жыл: '+x(q.de)],['Таза маржа',pc(c.nm),'өткен жыл: '+pc(q.nm)],['Капитал рентабельділігі (ROE)',pc(c.roe),'өткен жыл: '+pc(q.roe)],['Түсім өсімі',gr==null?'—':pc(gr-1),'өткен жылға қарағанда']];
+  $('#kpi').innerHTML=K.every(k=>k[1]==='—')?'':K.map(k=>`<div class="kp"><small>${k[0]}</small><strong>${k[1]}</strong><em>${k[2]}</em></div>`).join('');
+}
+</script>
 </body>
 </html>
